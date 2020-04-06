@@ -10,6 +10,12 @@
 library(shiny)
 library(leaflet)
 library(DT)
+library(tidyverse)
+
+get_data <- function(){
+    all.cases <- read_csv("dataset.csv")
+    return(all.cases)
+}
 
 # Define UI for application that draws a histogram
 ui <- navbarPage(title = "COVID-19 Monitor", 
@@ -65,14 +71,15 @@ ui <- navbarPage(title = "COVID-19 Monitor",
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
+    df <- get_data() %>% 
+        filter(Confirmed > 0 & Date == "2020-04-04" & !is.na(Lat) & !is.na(Long))
+    
     output$confirmedMap <- renderLeaflet(
         leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5)) %>%  
             addTiles() %>% 
             addCircles(lng = ~Long, lat = ~Lat, weight = 1, 
-                       radius = ~Confirmed*5, label = ~as.character(gsub("NA ,", "", 
-                                                                         paste(State, ",", 
-                                                                               Country, "-", 
-                                                                               "Confirmed: ", Confirmed))), 
+                       radius = ~Confirmed*5, label = ~as.character(paste(Country, "-", 
+                                                                               "Confirmed: ", Confirmed)), 
                        labelOptions = labelOptions(noHide = FALSE), 
                        fillOpacity = 0.3, color = "red") %>% 
             setView(lng = 0, lat = 0, zoom = 1.5) %>% 
@@ -83,10 +90,8 @@ server <- function(input, output) {
         leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5)) %>% 
             addTiles() %>% 
             addCircles(lng = ~Long, lat = ~Lat, weight = 1, 
-                       radius = ~Deaths*5, label = ~as.character(gsub("NA ,", "", 
-                                                                      paste(State, ",", 
-                                                                            Country, "-", 
-                                                                            "Deaths: ", Deaths))), 
+                       radius = ~Deaths*5, label = ~as.character(paste(Country, "-", 
+                                                                            "Deaths: ", Deaths)), 
                        labelOptions = labelOptions(noHide = FALSE), 
                        fillOpacity = 0.3, color = "purple") %>% 
             setView(lng = 0, lat = 0, zoom = 1.5) %>% 
@@ -97,10 +102,8 @@ server <- function(input, output) {
         leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5)) %>% 
             addTiles() %>% 
             addCircles(lng = ~Long, lat = ~Lat, weight = 1, 
-                       radius = ~Recovered*5, label = ~as.character(gsub("NA ,", "", 
-                                                                         paste(State, ",", 
-                                                                               Country, "-", 
-                                                                               "Recovered: ", Recovered))), 
+                       radius = ~Recovered*5, label = ~as.character(paste(Country, "-", 
+                                                                               "Recovered: ", Recovered)), 
                        labelOptions = labelOptions(noHide = FALSE), 
                        fillOpacity = 0.3, color = "green") %>% 
             setView(lng = 0, lat = 0, zoom = 1.5) %>% 
@@ -111,10 +114,8 @@ server <- function(input, output) {
         leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5)) %>% 
             addTiles() %>% 
             addCircles(lng = ~Long, lat = ~Lat, weight = 1, 
-                       radius = ~Active*5, label = ~as.character(gsub("NA ,", "", 
-                                                                      paste(State, ",", 
-                                                                            Country, "-", 
-                                                                            "Active: ", Active))), 
+                       radius = ~Active*5, label = ~as.character(paste(Country, "-", 
+                                                                            "Active: ", Active)), 
                        labelOptions = labelOptions(noHide = FALSE), 
                        fillOpacity = 0.3, color = "orange") %>% 
             setView(lng = 0, lat = 0, zoom = 1.5) %>% 
