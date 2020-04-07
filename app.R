@@ -110,7 +110,7 @@ server <- function(input, output) {
         leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5, worldCopyJump = TRUE)) %>% 
             addTiles() %>% 
             addCircles(lng = ~Long, lat = ~Lat, weight = 1, 
-                       radius = ~Deaths*5, label = ~as.character(paste(Country, "-", 
+                       radius = ~Deaths*25, label = ~as.character(paste(Country, "-", 
                                                                             "Deaths: ", Deaths)), 
                        labelOptions = labelOptions(noHide = FALSE), 
                        fillOpacity = 0.3, color = "purple") %>% 
@@ -122,7 +122,7 @@ server <- function(input, output) {
         leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5, worldCopyJump = TRUE)) %>% 
             addTiles() %>% 
             addCircles(lng = ~Long, lat = ~Lat, weight = 1, 
-                       radius = ~Recovered*5, label = ~as.character(paste(Country, "-", 
+                       radius = ~Recovered*15, label = ~as.character(paste(Country, "-", 
                                                                                "Recovered: ", Recovered)), 
                        labelOptions = labelOptions(noHide = FALSE), 
                        fillOpacity = 0.3, color = "green") %>% 
