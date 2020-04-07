@@ -11,6 +11,8 @@ library(shiny)
 library(leaflet)
 library(DT)
 library(tidyverse)
+library(shinythemes)
+library(rsconnect)
 
 get_data <- function(){
     all.cases <- read_csv("dataset.csv")
@@ -18,57 +20,62 @@ get_data <- function(){
 }
 
 # Define UI for application that draws a histogram
-ui <- navbarPage(title = "COVID-19 Monitor", 
+ui <- navbarPage(title = "COVID-19 Monitor", theme = shinytheme("flatly"), 
                  tabPanel("Global Crisis Map", 
-                          tabsetPanel(
-                              tabPanel("Confirmed Cases", 
+                          tabsetPanel( 
+                              tabPanel("Confirmed Cases", style = "color: darkskyblue", 
                                        leafletOutput("confirmedMap", width = "100%", height = 600), 
-                                       absolutePanel(top = 250, left = 50, 
+                                       absolutePanel(top = 250, left = 75, 
                                                      class = "panel panel-default", 
                                                      width = 200, fixed = TRUE,
                                                      draggable = TRUE, height = "auto", 
-                                                     dataTableOutput("confirmedTable")
+                                                     dataTableOutput("confirmedTable"), 
+                                                     style = "opacity: 0.75"
                                        )
                               ), 
                               tabPanel("Death Cases", 
                                        leafletOutput("deathsMap", width = "100%", height = 600), 
-                                       absolutePanel(top = 250, left = 50, 
+                                       absolutePanel(top = 250, left = 75, 
                                                      class = "panel panel-default", 
                                                      width = 200, fixed = TRUE,
                                                      draggable = TRUE, height = "auto", 
-                                                     dataTableOutput("deathsTable")
+                                                     dataTableOutput("deathsTable"), 
+                                                     style = "opacity: 0.75"
                                        )
                               ), 
                               tabPanel("Recovered Cases", 
                                        leafletOutput("recoveredMap", width = "100%", height = 600), 
-                                       absolutePanel(top = 250, left = 50, 
+                                       absolutePanel(top = 250, left = 75, 
                                                      class = "panel panel-default", 
                                                      width = 200, fixed = TRUE,
                                                      draggable = TRUE, height = "auto", 
-                                                     dataTableOutput("recoveredTable")
+                                                     dataTableOutput("recoveredTable"), 
+                                                     style = "opacity: 0.75"
                                        )
                               ),
                               tabPanel("Active Cases", 
                                        leafletOutput("activeMap", width = "100%", height = 600), 
-                                       absolutePanel(top = 250, left = 50, 
+                                       absolutePanel(top = 250, left = 75, 
                                                      class = "panel panel-default", 
                                                      width = 200, fixed = TRUE,
                                                      draggable = TRUE, height = "auto", 
-                                                     dataTableOutput("activeTable")
+                                                     dataTableOutput("activeTable"), 
+                                                     style = "opacity: 0.75"
                                        )
                               )
                           ), 
                           absolutePanel(
-                              top = 175, right = 50, 
+                              top = 175, right = 25, 
                               class = "panel panel-default", 
                               width = 150, fixed = TRUE,
                               draggable = TRUE, height = "auto", 
-                              textOutput("countryCount"),
-                              textOutput("confirmedCount"), 
-                              textOutput("recoveredCount"), 
-                              textOutput("deathsCount"), 
-                              textOutput("activeCount"), 
-                              textOutput("hitsCount"),
+                              h3(textOutput("confirmedCount"), align = "right", style = "color: deepskyblue"), 
+                              h4(textOutput("deathsCount"), align = "right", style = "color: red"), 
+                              h4(textOutput("recoveredCount"), align = "right", style = "color: green"), 
+                              h4(textOutput("activeCount"), align = "right", style = "color: orange"), 
+                              h5(textOutput("countryCount"), align = "right", style = "color: purple"), 
+                              textOutput("hitsCount"), 
+                              style = "opacity: 0.75"
                           )
                           ),
                  tabPanel("Forecast", 
@@ -99,7 +106,7 @@ server <- function(input, output) {
                        radius = ~Confirmed*4, label = ~as.character(paste(Country, "-", 
                                                                                "Confirmed: ", Confirmed)), 
                        labelOptions = labelOptions(noHide = FALSE), 
-                       fillOpacity = 0.6, color = "aqua") %>% 
+                       fillOpacity = 0.6, color = "deepskyblue") %>% 
             setView(lng = 0, lat = 0, zoom = 1.5) %>% 
             setMaxBounds(-180, 90, 180, -90) %>% 
             addProviderTiles("CartoDB.DarkMatter") %>% 
@@ -150,7 +157,7 @@ server <- function(input, output) {
                        radius = ~Active*4, label = ~as.character(paste(Country, "-", 
                                                                             "Active: ", Active)), 
                        labelOptions = labelOptions(noHide = FALSE), 
-                       fillOpacity = 0.6, color = "yellow") %>% 
+                       fillOpacity = 0.6, color = "orange") %>% 
             setView(lng = 0, lat = 0, zoom = 1.5) %>% 
             setMaxBounds(-180, 90, 180, -90) %>% 
             addProviderTiles("CartoDB.DarkMatter") %>% 
@@ -173,8 +180,8 @@ server <- function(input, output) {
                            info = FALSE)
         ) %>% 
             formatStyle(
-                c('Country', 'Total'), 
-                color = 'black', backgroundColor = NULL, fontWeight = 'bold'
+                c('Country', 'Total'), background = styleColorBar(df$Confirmed, 'deepskyblue'),
+                color = 'black', backgroundColor = NULL, fontWeight = 'bold' 
             )
     )
     
@@ -191,8 +198,8 @@ server <- function(input, output) {
                            info = FALSE)
         ) %>% 
             formatStyle(
-                c('Country', 'Total'), 
-                color = 'black', backgroundColor = NULL, fontWeight = 'bold'
+                c('Country', 'Total'), background = styleColorBar(df$Deaths, 'red'),
+                color = 'black', backgroundColor = NULL, fontWeight = 'bold' 
             )
     )
     
@@ -209,8 +216,8 @@ server <- function(input, output) {
                            info = FALSE)
         ) %>% 
             formatStyle(
-                c('Country', 'Total'), 
-                color = 'black', backgroundColor = NULL, fontWeight = 'bold'
+                c('Country', 'Total'), background = styleColorBar(df$Recovered, 'green'),
+                color = 'black', backgroundColor = NULL, fontWeight = 'bold' 
             )
     )
     
@@ -227,8 +234,8 @@ server <- function(input, output) {
                            info = FALSE)
         ) %>% 
             formatStyle(
-                c('Country', 'Total'), 
-                color = 'black', backgroundColor = NULL, fontWeight = 'bold'
+                c('Country', 'Total'), background = styleColorBar(df$Active, 'orange'),
+                color = 'black', backgroundColor = NULL, fontWeight = 'bold' 
             )
     )
 }
