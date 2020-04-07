@@ -20,46 +20,56 @@ get_data <- function(){
 # Define UI for application that draws a histogram
 ui <- navbarPage(title = "COVID-19 Monitor", 
                  tabPanel("Global Crisis Map", 
-                          tabsetPanel(
-                              tabPanel("Confirmed Cases", 
-                                       column(
-                                           width = 9, 
-                                           leafletOutput("confirmedMap")
-                                       ), 
-                                       column(
-                                           width = 3, 
-                                           dataTableOutput("confirmedTable")
-                                       )
-                              ), 
-                              tabPanel("Death Cases", 
-                                       column(
-                                           width = 9, 
-                                           leafletOutput("deathsMap")
-                                       ), 
-                                       column(
-                                           width = 3, 
-                                           dataTableOutput("deathsTable")
-                                       )
-                              ), 
-                              tabPanel("Recovered Cases", 
-                                       column(
-                                           width = 9, 
-                                           leafletOutput("recoveredMap")
-                                       ), 
-                                       column( 
-                                           width = 3, 
-                                           dataTableOutput("recoveredTable")
-                                       )
-                              ),
-                              tabPanel("Active Cases", 
-                                       column(
-                                           width = 9, 
-                                           leafletOutput("activeMap")
-                                       ), 
-                                       column(
-                                           width = 3, 
-                                           dataTableOutput("activeTable")
-                                       )
+                          fluidRow(
+                              textOutput("countryCount"),
+                              textOutput("confirmedCount"), 
+                              textOutput("recoveredCount"), 
+                              textOutput("deathsCount"), 
+                              textOutput("activeCount"), 
+                              textOutput("hitsCount")
+                          ), 
+                          fluidRow(
+                              tabsetPanel(
+                                  tabPanel("Confirmed Cases", 
+                                           column(
+                                               width = 9, 
+                                               leafletOutput("confirmedMap")
+                                           ), 
+                                           column(
+                                               width = 3, 
+                                               dataTableOutput("confirmedTable")
+                                           )
+                                  ), 
+                                  tabPanel("Death Cases", 
+                                           column(
+                                               width = 9, 
+                                               leafletOutput("deathsMap")
+                                           ), 
+                                           column(
+                                               width = 3, 
+                                               dataTableOutput("deathsTable")
+                                           )
+                                  ), 
+                                  tabPanel("Recovered Cases", 
+                                           column(
+                                               width = 9, 
+                                               leafletOutput("recoveredMap")
+                                           ), 
+                                           column( 
+                                               width = 3, 
+                                               dataTableOutput("recoveredTable")
+                                           )
+                                  ),
+                                  tabPanel("Active Cases", 
+                                           column(
+                                               width = 9, 
+                                               leafletOutput("activeMap")
+                                           ), 
+                                           column(
+                                               width = 3, 
+                                               dataTableOutput("activeTable")
+                                           )
+                                  )
                               )
                           )
                           ),
@@ -72,10 +82,20 @@ ui <- navbarPage(title = "COVID-19 Monitor",
 # Define server logic required to draw a histogram
 server <- function(input, output) {
     df <- get_data() %>% 
-        filter(Confirmed > 0 & Date == "2020-04-04" & !is.na(Lat) & !is.na(Long))
+        filter(Date == "2020-04-06")
+    
+    output$countryCount <- renderText(nrow(df)) 
+    
+    output$confirmedCount <- renderText(sum(df$Confirmed)) 
+    
+    output$deathsCount <- renderText(sum(df$Deaths)) 
+    
+    output$recoveredCount <- renderText(sum(df$Recovered)) 
+    
+    output$activeCount <- renderText(sum(df$Active))
     
     output$confirmedMap <- renderLeaflet(
-        leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5)) %>%  
+        leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5, worldCopyJump = TRUE)) %>%  
             addTiles() %>% 
             addCircles(lng = ~Long, lat = ~Lat, weight = 1, 
                        radius = ~Confirmed*5, label = ~as.character(paste(Country, "-", 
@@ -87,7 +107,7 @@ server <- function(input, output) {
     )
     
     output$deathsMap <- renderLeaflet(
-        leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5)) %>% 
+        leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5, worldCopyJump = TRUE)) %>% 
             addTiles() %>% 
             addCircles(lng = ~Long, lat = ~Lat, weight = 1, 
                        radius = ~Deaths*5, label = ~as.character(paste(Country, "-", 
@@ -99,7 +119,7 @@ server <- function(input, output) {
     )
     
     output$recoveredMap <- renderLeaflet(
-        leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5)) %>% 
+        leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5, worldCopyJump = TRUE)) %>% 
             addTiles() %>% 
             addCircles(lng = ~Long, lat = ~Lat, weight = 1, 
                        radius = ~Recovered*5, label = ~as.character(paste(Country, "-", 
@@ -111,7 +131,7 @@ server <- function(input, output) {
     )
     
     output$activeMap <- renderLeaflet(
-        leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5)) %>% 
+        leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5, worldCopyJump = TRUE)) %>% 
             addTiles() %>% 
             addCircles(lng = ~Long, lat = ~Lat, weight = 1, 
                        radius = ~Active*5, label = ~as.character(paste(Country, "-", 
