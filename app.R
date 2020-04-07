@@ -20,57 +20,55 @@ get_data <- function(){
 # Define UI for application that draws a histogram
 ui <- navbarPage(title = "COVID-19 Monitor", 
                  tabPanel("Global Crisis Map", 
-                          fluidRow(
+                          tabsetPanel(
+                              tabPanel("Confirmed Cases", 
+                                       leafletOutput("confirmedMap", width = "100%", height = 600), 
+                                       absolutePanel(top = 250, left = 50, 
+                                                     class = "panel panel-default", 
+                                                     width = 200, fixed = TRUE,
+                                                     draggable = TRUE, height = "auto", 
+                                                     dataTableOutput("confirmedTable")
+                                       )
+                              ), 
+                              tabPanel("Death Cases", 
+                                       leafletOutput("deathsMap", width = "100%", height = 600), 
+                                       absolutePanel(top = 250, left = 50, 
+                                                     class = "panel panel-default", 
+                                                     width = 200, fixed = TRUE,
+                                                     draggable = TRUE, height = "auto", 
+                                                     dataTableOutput("deathsTable")
+                                       )
+                              ), 
+                              tabPanel("Recovered Cases", 
+                                       leafletOutput("recoveredMap", width = "100%", height = 600), 
+                                       absolutePanel(top = 250, left = 50, 
+                                                     class = "panel panel-default", 
+                                                     width = 200, fixed = TRUE,
+                                                     draggable = TRUE, height = "auto", 
+                                                     dataTableOutput("recoveredTable")
+                                       )
+                              ),
+                              tabPanel("Active Cases", 
+                                       leafletOutput("activeMap", width = "100%", height = 600), 
+                                       absolutePanel(top = 250, left = 50, 
+                                                     class = "panel panel-default", 
+                                                     width = 200, fixed = TRUE,
+                                                     draggable = TRUE, height = "auto", 
+                                                     dataTableOutput("activeTable")
+                                       )
+                              )
+                          ), 
+                          absolutePanel(
+                              top = 175, right = 50, 
+                              class = "panel panel-default", 
+                              width = 150, fixed = TRUE,
+                              draggable = TRUE, height = "auto", 
                               textOutput("countryCount"),
                               textOutput("confirmedCount"), 
                               textOutput("recoveredCount"), 
                               textOutput("deathsCount"), 
                               textOutput("activeCount"), 
-                              textOutput("hitsCount")
-                          ), 
-                          fluidRow(
-                              tabsetPanel(
-                                  tabPanel("Confirmed Cases", 
-                                           column(
-                                               width = 9, 
-                                               leafletOutput("confirmedMap")
-                                           ), 
-                                           column(
-                                               width = 3, 
-                                               dataTableOutput("confirmedTable")
-                                           )
-                                  ), 
-                                  tabPanel("Death Cases", 
-                                           column(
-                                               width = 9, 
-                                               leafletOutput("deathsMap")
-                                           ), 
-                                           column(
-                                               width = 3, 
-                                               dataTableOutput("deathsTable")
-                                           )
-                                  ), 
-                                  tabPanel("Recovered Cases", 
-                                           column(
-                                               width = 9, 
-                                               leafletOutput("recoveredMap")
-                                           ), 
-                                           column( 
-                                               width = 3, 
-                                               dataTableOutput("recoveredTable")
-                                           )
-                                  ),
-                                  tabPanel("Active Cases", 
-                                           column(
-                                               width = 9, 
-                                               leafletOutput("activeMap")
-                                           ), 
-                                           column(
-                                               width = 3, 
-                                               dataTableOutput("activeTable")
-                                           )
-                                  )
-                              )
+                              textOutput("hitsCount"),
                           )
                           ),
                  tabPanel("Forecast", 
@@ -98,48 +96,68 @@ server <- function(input, output) {
         leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5, worldCopyJump = TRUE)) %>%  
             addTiles() %>% 
             addCircles(lng = ~Long, lat = ~Lat, weight = 1, 
-                       radius = ~Confirmed*5, label = ~as.character(paste(Country, "-", 
+                       radius = ~Confirmed*4, label = ~as.character(paste(Country, "-", 
                                                                                "Confirmed: ", Confirmed)), 
                        labelOptions = labelOptions(noHide = FALSE), 
-                       fillOpacity = 0.3, color = "red") %>% 
+                       fillOpacity = 0.6, color = "aqua") %>% 
             setView(lng = 0, lat = 0, zoom = 1.5) %>% 
-            setMaxBounds(-180, 90, 180, -90) 
+            setMaxBounds(-180, 90, 180, -90) %>% 
+            addProviderTiles("CartoDB.DarkMatter") %>% 
+            addMiniMap(
+                tiles = providers$CartoDB.DarkMatter,
+                toggleDisplay = TRUE
+            )
     )
     
     output$deathsMap <- renderLeaflet(
         leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5, worldCopyJump = TRUE)) %>% 
             addTiles() %>% 
             addCircles(lng = ~Long, lat = ~Lat, weight = 1, 
-                       radius = ~Deaths*25, label = ~as.character(paste(Country, "-", 
+                       radius = ~Deaths*30, label = ~as.character(paste(Country, "-", 
                                                                             "Deaths: ", Deaths)), 
                        labelOptions = labelOptions(noHide = FALSE), 
-                       fillOpacity = 0.3, color = "purple") %>% 
+                       fillOpacity = 0.6, color = "red") %>% 
             setView(lng = 0, lat = 0, zoom = 1.5) %>% 
-            setMaxBounds(-180, 90, 180, -90) 
+            setMaxBounds(-180, 90, 180, -90) %>% 
+            addProviderTiles("CartoDB.DarkMatter") %>% 
+            addMiniMap(
+                tiles = providers$CartoDB.DarkMatter,
+                toggleDisplay = TRUE
+            )
     )
     
     output$recoveredMap <- renderLeaflet(
         leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5, worldCopyJump = TRUE)) %>% 
             addTiles() %>% 
             addCircles(lng = ~Long, lat = ~Lat, weight = 1, 
-                       radius = ~Recovered*15, label = ~as.character(paste(Country, "-", 
+                       radius = ~Recovered*20, label = ~as.character(paste(Country, "-", 
                                                                                "Recovered: ", Recovered)), 
                        labelOptions = labelOptions(noHide = FALSE), 
-                       fillOpacity = 0.3, color = "green") %>% 
+                       fillOpacity = 0.6, color = "green") %>% 
             setView(lng = 0, lat = 0, zoom = 1.5) %>% 
-            setMaxBounds(-180, 90, 180, -90) 
+            setMaxBounds(-180, 90, 180, -90) %>% 
+            addProviderTiles("CartoDB.DarkMatter") %>% 
+            addMiniMap(
+                tiles = providers$CartoDB.DarkMatter,
+                toggleDisplay = TRUE
+            )
     )
     
     output$activeMap <- renderLeaflet(
         leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5, worldCopyJump = TRUE)) %>% 
             addTiles() %>% 
             addCircles(lng = ~Long, lat = ~Lat, weight = 1, 
-                       radius = ~Active*5, label = ~as.character(paste(Country, "-", 
+                       radius = ~Active*4, label = ~as.character(paste(Country, "-", 
                                                                             "Active: ", Active)), 
                        labelOptions = labelOptions(noHide = FALSE), 
-                       fillOpacity = 0.3, color = "orange") %>% 
+                       fillOpacity = 0.6, color = "yellow") %>% 
             setView(lng = 0, lat = 0, zoom = 1.5) %>% 
-            setMaxBounds(-180, 90, 180, -90) 
+            setMaxBounds(-180, 90, 180, -90) %>% 
+            addProviderTiles("CartoDB.DarkMatter") %>% 
+            addMiniMap(
+                tiles = providers$CartoDB.DarkMatter,
+                toggleDisplay = TRUE
+            )
     )
     
     output$confirmedTable <- DT::renderDataTable(
