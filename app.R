@@ -12,11 +12,21 @@ library(leaflet)
 library(DT)
 library(tidyverse)
 library(shinythemes)
+library(gganimate)
+library(gifski)
 library(rsconnect)
 
+# read data from generated csv dataset 
 get_data <- function(){
-    all.cases <- read_csv("dataset.csv")
+    all.cases <- read_csv("dataWrangling/covid19-dataset.csv")
     return(all.cases)
+}
+
+# get the most recent updated data
+get_date <- function(df){
+    df %>% 
+        mutate(Date = as.Date(Date, format= "%m/%d/%y")) %>% 
+        filter(Date == max(Date))
 }
 
 # Define UI for application that draws a histogram
@@ -81,26 +91,32 @@ ui <- navbarPage(title = "COVID-19 Monitor", theme = shinytheme("flatly"),
                  tabPanel("Forecast", 
                           ), 
                  tabPanel("Viz", 
+                          fluidRow(
+                              imageOutput("scatterPlot", width = "50%", height = "250px") 
+                              
+                          ),
+                          fluidRow(
+                              
+                          )
                           )
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-    df <- get_data() %>% 
-        filter(Date == "2020-04-06")
+    df <- get_data() 
     
-    output$countryCount <- renderText(nrow(df)) 
+    output$countryCount <- renderText(nrow(get_date(df))) 
     
-    output$confirmedCount <- renderText(sum(df$Confirmed)) 
+    output$confirmedCount <- renderText(sum(get_date(df)$Confirmed)) 
     
-    output$deathsCount <- renderText(sum(df$Deaths)) 
+    output$deathsCount <- renderText(sum(get_date(df)$Deaths)) 
     
-    output$recoveredCount <- renderText(sum(df$Recovered)) 
+    output$recoveredCount <- renderText(sum(get_date(df)$Recovered)) 
     
-    output$activeCount <- renderText(sum(df$Active))
+    output$activeCount <- renderText(sum(get_date(df)$Active))
     
     output$confirmedMap <- renderLeaflet(
-        leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5, worldCopyJump = TRUE)) %>%  
+        leaflet(get_date(df), options = leafletOptions(minZoom = 1, maxZoom = 5, worldCopyJump = TRUE)) %>%  
             addTiles() %>% 
             addCircles(lng = ~Long, lat = ~Lat, weight = 1, 
                        radius = ~Confirmed*4, label = ~as.character(paste(Country, "-", 
@@ -117,7 +133,7 @@ server <- function(input, output) {
     )
     
     output$deathsMap <- renderLeaflet(
-        leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5, worldCopyJump = TRUE)) %>% 
+        leaflet(get_date(df), options = leafletOptions(minZoom = 1, maxZoom = 5, worldCopyJump = TRUE)) %>% 
             addTiles() %>% 
             addCircles(lng = ~Long, lat = ~Lat, weight = 1, 
                        radius = ~Deaths*30, label = ~as.character(paste(Country, "-", 
@@ -134,7 +150,7 @@ server <- function(input, output) {
     )
     
     output$recoveredMap <- renderLeaflet(
-        leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5, worldCopyJump = TRUE)) %>% 
+        leaflet(get_date(df), options = leafletOptions(minZoom = 1, maxZoom = 5, worldCopyJump = TRUE)) %>% 
             addTiles() %>% 
             addCircles(lng = ~Long, lat = ~Lat, weight = 1, 
                        radius = ~Recovered*20, label = ~as.character(paste(Country, "-", 
@@ -151,7 +167,7 @@ server <- function(input, output) {
     )
     
     output$activeMap <- renderLeaflet(
-        leaflet(df, options = leafletOptions(minZoom = 1, maxZoom = 5, worldCopyJump = TRUE)) %>% 
+        leaflet(get_date(df), options = leafletOptions(minZoom = 1, maxZoom = 5, worldCopyJump = TRUE)) %>% 
             addTiles() %>% 
             addCircles(lng = ~Long, lat = ~Lat, weight = 1, 
                        radius = ~Active*4, label = ~as.character(paste(Country, "-", 
@@ -169,7 +185,7 @@ server <- function(input, output) {
     
     output$confirmedTable <- DT::renderDataTable(
         datatable(
-            df %>% 
+            get_date(df) %>% 
                 group_by(Country) %>% 
                 summarise(Total = sum(Confirmed)) %>% 
                 arrange(-Total) %>% 
@@ -187,7 +203,7 @@ server <- function(input, output) {
     
     output$deathsTable <- DT::renderDataTable(
         datatable(
-            df %>% 
+            get_date(df) %>% 
                 group_by(Country) %>% 
                 summarise(Total = sum(Deaths)) %>% 
                 arrange(-Total) %>% 
@@ -205,7 +221,7 @@ server <- function(input, output) {
     
     output$recoveredTable <- DT::renderDataTable(
         datatable(
-            df %>% 
+            get_date(df) %>% 
                 group_by(Country) %>% 
                 summarise(Total = sum(Recovered)) %>% 
                 arrange(-Total) %>% 
@@ -223,7 +239,7 @@ server <- function(input, output) {
     
     output$activeTable <- DT::renderDataTable(
         datatable(
-            df %>% 
+            get_date(df) %>% 
                 group_by(Country) %>% 
                 summarise(Total = sum(Active)) %>% 
                 arrange(-Total) %>% 
@@ -238,6 +254,25 @@ server <- function(input, output) {
                 color = 'black', backgroundColor = NULL, fontWeight = 'bold' 
             )
     )
+    
+    output$scatterPlot <- renderImage({
+        temp.df <- df %>% 
+            select(c(3:6)) %>% 
+            group_by(Date) %>% 
+            summarize_all(sum) %>% 
+            gather(Deaths, Recovered, Active, key = "Type", value = "Count") %>% 
+            ungroup()
+        p <- ggplot(temp.df) + 
+            geom_line(aes(x = Date, y = Count, color = Type)) + 
+            geom_point(aes(x = Date, y = Count, color = Type, shape = Type), size = 3) +  
+            geom_text(aes(x = Date, y = Count, color = Type, label = Count), vjust = -3) + 
+            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                  panel.background = element_blank(), axis.line = element_line(colour = "black")) + 
+            transition_reveal(Date) 
+        anim_save("sP.gif", animate(p, duration = 5, fps = 5, renderer = gifski_renderer())) 
+        list(src = "sP.gif",
+             contentType = 'image/gif')
+    }, deleteFile = TRUE)
 }
 
 # Run the application 

@@ -1,0 +1,212 @@
+---
+title: "Covid19-DataSet"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+#generates cleaned dataset for application usage
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+#loading the required libraries
+library(dplyr)
+library(tools)
+library(tidyverse)
+library(httr)
+```
+
+
+```{r}
+#adding column 'Active' to the dataframe
+add_active_col <- function(df) {
+    df$Active <- df$Confirmed - df$Deaths - df$Recovered
+    df$Active <- as.integer(df$Active)
+    return(df)
+}
+```
+
+
+```{r}
+#changing the column name from 'Country.Region' to 'Country_Region'
+change_colname <- function(df) {
+  if ("Country.Region" %in% colnames(df)) {
+    colnames(df)[which(names(df) == "Country.Region")] <- "Country_Region" 
+  }
+  return(df)
+}
+```
+
+
+```{r}
+#cleaning the data
+#using the above functions to create it into a structured format
+#selecting the desired columns from the dataframe
+#grouping by country and summarizing the values of the rest of the columns
+#changing all NA's to 0
+#extracting the date and using it for a new column 'Date'
+data_clean_from_url <- function(dir_name, filename) {
+  filepath <- paste(dir_name, filename, sep="/")
+  covid_file <- read.csv(url(filepath))
+  covid_file <- change_colname(covid_file)
+  covid_file <- covid_file %>% dplyr::select(Country_Region, Confirmed, Deaths, Recovered)
+  covid_file <- covid_file %>% group_by(Country_Region) %>% summarize_all(sum)
+  covid_file$Active <- NULL
+  covid_file <- add_active_col(covid_file)
+  #making all NAs enteries to 0
+  covid_file[is.na(covid_file)] <- 0
+  #extracting date from the filename
+  file_date <- gsub("^.*/", "", filename)
+  #mutating the same in the new column Date
+  covid_file$Date <- file_date
+  #changing the data type of the column 'Date'
+  covid_file$Date <- as.Date(covid_file$Date, "%m-%d-%Y")
+  return(covid_file)
+}
+```
+
+
+```{r}
+#getting csv files for each day from github
+get_filename_from_github <- function(github_url_api_link, github_folder) {
+  req <- GET(github_url_api_link)
+  stop_for_status(req)
+  file_list <- unlist(lapply(content(req)$tree, "[", "path"), use.names = F)
+  csv_list <- grep(github_folder, file_list, value = TRUE, fixed = TRUE)
+  return(csv_list)
+}
+
+csv_list <- get_filename_from_github("https://api.github.com/repos/chetnakhanna16/COVID-19/git/trees/master?recursive=1", "csse_covid_19_data/csse_covid_19_daily_reports/")
+```
+
+```{r}
+#creating an empty data frame 
+final_df <- data.frame(Country_Region=factor(), Confirmed=integer(), Deaths=integer(), Recovered=integer(), Active=integer())
+
+#writing separate file names from the list
+filenames <- strsplit(csv_list, "\n")
+
+#processing one csv file at a time from our path
+for (filename in filenames) {
+  #using only the csv files
+  if (str_detect(filename, ".csv")){
+    #cleaning the data
+    df_covid <- data_clean_from_url("https://raw.githubusercontent.com/chetnakhanna16/COVID-19/master", filename)
+    #creating the final dataframe
+    final_df <- rbind(df_covid, final_df)
+  }
+}
+
+#changing the column name 'Country_Region' to 'Country'
+colnames(final_df)[which(names(final_df) == "Country_Region")] <- "Country" 
+
+#printing the final dataframe with updated COVID-19 data 
+head(final_df)
+```
+
+
+```{r}
+#reading the CSV to get the country codes 'iso2'
+country_code <- read.csv('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/UID_ISO_FIPS_LookUp_Table.csv')
+head(country_code)
+```
+
+```{r}
+country_code <- country_code %>% add_row(UID=10001, iso2="MW", iso3="MW", code3=10001, FIPS=NA, Admin2="", Province_State="", Country_Region="Malawi", Lat=-13.254308, Long_=34.301525, Combined_Key="Malawi")
+country_code <- country_code %>% add_row(UID=10002, iso2="SS", iso3="SS", code3=10002, FIPS=NA, Admin2="", Province_State="", Country_Region="South Sudan", Lat=6.8770, Long_=31.3070, Combined_Key="South Sudan")
+head(country_code)
+```
+
+```{r}
+#taking only the country codes
+country_code$Province_State <- as.character(country_code$Province_State)
+head(country_code)
+```
+
+```{r}
+#taking only the country codes
+country_code_df <- country_code[country_code$Province_State == "",]
+head(country_code_df)
+```
+
+```{r}
+#changing the column name 'Country_Region' to 'Country'
+colnames(country_code_df)[which(names(country_code) == "Country_Region")] <- "Country" 
+head(country_code_df)
+```
+
+```{r}
+#joining our covid data frame and country codes data frame to get the codes for each country 
+final_df_code <- left_join(final_df, country_code_df, by="Country")
+head(final_df_code)
+```
+
+```{r}
+#selecting only the required columns
+final_df_code <- final_df_code %>% dplyr::select(Country, Confirmed, Deaths, Recovered, Active, Date, iso2)
+head(final_df_code)
+```
+
+```{r}
+#reading the csv
+location <- read.csv("countries.csv")
+#changing the column names
+names(location) <- c("iso2", "Lat", "Long", "Country")
+head(location)
+```
+
+```{r}
+#joining the dataframes to get the country code
+final_df_covid <- left_join(final_df_code, location, by= c("iso2"))
+head(final_df_covid)
+```
+
+```{r}
+#adding the latitude and longitude of Diamond Princess
+final_df_covid <- within(final_df_covid, {
+    f <- Country.x == 'Diamond Princess'
+    Lat[f] <- '37.749860'
+    Long[f] <- '-122.597784'
+})
+```
+
+```{r}
+#adding the latitude and longitude of MS Zaandam
+final_df_covid <- within(final_df_covid, {
+    g <- Country.x == 'MS Zaandam'
+    Lat[g] <- '52.442039'
+    Long[g] <- '4.829199'
+})
+```
+
+```{r}
+#adding the latitude and longitude of South Sudan
+final_df_covid <- within(final_df_covid, {
+    h <- Country.x == 'South Sudan'
+    Lat[h] <- '6.8770'
+    Long[h] <- '31.3070'
+})
+```
+
+```{r}
+#selecting the required columns
+final_df_covid <- final_df_covid %>% dplyr::select(Country.x, Confirmed, Deaths, Recovered, Active, Date, Lat, Long)
+head(final_df_covid)
+```
+
+```{r}
+#changing the column names
+names(final_df_covid) <- c("Country","Confirmed","Deaths","Recovered","Active","Date","Lat","Long")
+head(final_df_covid)
+```
+
+```{r}
+#save dataframe in a csv
+save_df_to_csv <- function(df) {
+  write.csv(x=df, file="./covid19-dataset.csv", row.names=FALSE)
+}
+
+save_df_to_csv(final_df_covid)
+```
+
